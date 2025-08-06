@@ -2,7 +2,6 @@
 root = true
 
 [*.cs]
-
 indent_style = space
 indent_size = 2
 
@@ -27,3 +26,9 @@ dotnet_diagnostic.SA1503.severity = none
 # SA1124: Do not use regions (#region and #endregion)
 dotnet_diagnostic.SA1124.severity = none
 dotnet_diagnostic.NU1701.severity = none
+# IDE0055: Formatting rule
+dotnet_diagnostic.IDE0055.severity = error
+# CA1305: Specify IFormatProvider
+dotnet_diagnostic.CA1305.severity = none
+# CA1863: Use CompositeFormat
+dotnet_diagnostic.CA1863.severity = none

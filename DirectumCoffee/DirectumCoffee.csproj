@@ -4,6 +4,8 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <Configurations>Debug;Release;StyleCheck</Configurations>
+        <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'StyleCheck'">
@@ -13,7 +15,7 @@
         <WarningsNotAsErrors>NU1701</WarningsNotAsErrors>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <AnalysisLevel>latest</AnalysisLevel>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' != 'StyleCheck'">

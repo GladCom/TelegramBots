@@ -7,67 +7,71 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace DirectumCoffee;
 
-public sealed class BotDbContext : UserDbContext
+/// <summary>
+/// DBContext для бота.
+/// </summary>
+internal sealed class BotDbContext : UserDbContext
 {
-    private static readonly object padlock = new object();
-    private static volatile BotDbContext instance;
-    private static Lazy<BotDbContext> lazy = new(() => new BotDbContext());
+  private static readonly object padlock = new object();
+  private static volatile BotDbContext instance;
+  private static Lazy<BotDbContext> lazy = new(() => new BotDbContext());
 
-    public static BotDbContext Instance
+  public static BotDbContext Instance
+  {
+    get
     {
-        get
+      if (instance == null)
+      {
+        lock (padlock)
         {
-            if (instance == null)
-            {
-                lock (padlock)
-                {
-                    if (instance == null)
-                    {
-                        instance = lazy.Value;
-                    }
-                }
-            }
-
-            return instance;
+          if (instance == null)
+          {
+            instance = lazy.Value;
+          }
         }
+      }
+
+      return instance;
     }
+  }
 
-    public DbSet<UserInfo> UserInfos { get; set; }
-    public DbSet<CoffeePair> CoffeePairs { get; set; }
+  public DbSet<UserInfo> UserInfos { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite(_connectionString);
+  public DbSet<CoffeePair> CoffeePairs { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<UserInfo>()
-            .HasOne(u => u.BotUser)
-            .WithMany()
-            .HasForeignKey(u => u.UserId);
-        modelBuilder.Entity<UserInfo>()
-            .Property(cp => cp.KeyWords)
-            .HasConversion(
-                v => string.Join(',', v),
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+  protected override void OnConfiguring(DbContextOptionsBuilder options)
+    => options.UseSqlite(this._connectionString);
 
-        modelBuilder.Entity<CoffeePair>()
-            .HasOne(cp => cp.FirstUser)
-            .WithMany()
-            .HasForeignKey(cp => cp.FirstUserId);
-        modelBuilder.Entity<CoffeePair>()
-            .Property(cp => cp.CommonInterests)
-            .HasConversion(
-                v => string.Join(',', v),
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
-    }
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
+    modelBuilder.Entity<UserInfo>()
+      .HasOne(u => u.BotUser)
+      .WithMany()
+      .HasForeignKey(u => u.UserId);
+    modelBuilder.Entity<UserInfo>()
+      .Property(cp => cp.KeyWords)
+      .HasConversion(
+        v => string.Join(',', v),
+        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
 
-    private BotDbContext()
-        : base("Filename=coffee.db")
-    {
-        Database.EnsureCreated();
+    modelBuilder.Entity<CoffeePair>()
+      .HasOne(cp => cp.FirstUser)
+      .WithMany()
+      .HasForeignKey(cp => cp.FirstUserId);
+    modelBuilder.Entity<CoffeePair>()
+      .Property(cp => cp.CommonInterests)
+      .HasConversion(
+        v => string.Join(',', v),
+        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
+  }
 
-        var creator = this.GetService<IRelationalDatabaseCreator>();
-        if (!creator.Exists())
-            creator.CreateTables();
-    }
+  private BotDbContext()
+      : base("Filename=coffee.db")
+  {
+    this.Database.EnsureCreated();
+
+    var creator = this.GetService<IRelationalDatabaseCreator>();
+    if (!creator.Exists())
+      creator.CreateTables();
+  }
 }
