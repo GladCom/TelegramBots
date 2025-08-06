@@ -1,4 +1,7 @@
-﻿using edu.stanford.nlp.ling;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using edu.stanford.nlp.ling;
 using edu.stanford.nlp.pipeline;
 using edu.stanford.nlp.util;
 using java.util;
@@ -26,7 +29,8 @@ namespace DirectumCoffee
                 pipeline.annotate(annotation);
                 annotations.Add(new KeyValuePair<long, Annotation>(profile.Key, annotation));
             }
-            foreach (var annotation in annotations) 
+
+            foreach (var annotation in annotations)
             {
                 var user = BotDbContext.Instance.UserInfos
                     .Where(u => u.UserId == annotation.Key)
@@ -38,35 +42,35 @@ namespace DirectumCoffee
             }
 
             HashSet<long> pairedUsers = new HashSet<long>();
-            
+
             for (int i = 0; i < profiles.Count - 1; i++)
             {
                 var profile1 = profiles.ElementAt(i);
                 var annotation1 = annotations[i];
-            
+
                 if (pairedUsers.Contains(profile1.Key))
                 {
                     continue;
                 }
-            
+
                 long bestMatchUserId = 0;
                 int maxCommonKeywords = 0;
                 string[] commonInterests = null;
-            
+
                 for (int j = i + 1; j < profiles.Count; j++)
                 {
                     var profile2 = profiles.ElementAt(j);
                     var annotation2 = annotations[j];
 
                     var isPairCreatedEarlier = BotDbContext.Instance.CoffeePairs
-                        .Any(p => (p.FirstUserId == profile1.Key && p.SecondUserId == profile2.Key && p.PairingDate != DateTime.Today) 
+                        .Any(p => (p.FirstUserId == profile1.Key && p.SecondUserId == profile2.Key && p.PairingDate != DateTime.Today)
                             || (p.FirstUserId == profile2.Key && p.SecondUserId == profile1.Key && p.PairingDate != DateTime.Today));
-    
+
                     if (pairedUsers.Contains(profile2.Key) || isPairCreatedEarlier)
                     {
                         continue;
                     }
-            
+
                     var keywords1 = BotDbContext.Instance.UserInfos
                         .Where(u => u.UserId == annotation1.Key)
                         .Select(u => u.KeyWords)
@@ -75,11 +79,11 @@ namespace DirectumCoffee
                         .Where(u => u.UserId == annotation2.Key)
                         .Select(u => u.KeyWords)
                         .FirstOrDefault();;
-            
+
                     var commonKeywords = keywords1.Intersect(keywords2).ToList();
-            
+
                     int commonCount = commonKeywords.Count;
-            
+
                     if (commonCount > maxCommonKeywords)
                     {
                         maxCommonKeywords = commonCount;
@@ -87,7 +91,7 @@ namespace DirectumCoffee
                         commonInterests = commonKeywords.ToArray();
                     }
                 }
-            
+
                 var pair = new CoffeePair
                 {
                     FirstUserId = profile1.Key,
@@ -95,13 +99,13 @@ namespace DirectumCoffee
                     CommonInterests = commonInterests ?? Array.Empty<string>(),
                     PairingDate = DateTime.Today
                 };
-        
+
                 BotDbContext.Instance.CoffeePairs.Add(pair);
                 pairedUsers.Add(profile1.Key);
                 if (bestMatchUserId != 0)
                     pairedUsers.Add(bestMatchUserId);
             }
-            
+
             BotDbContext.Instance.SaveChanges();
         }
 
@@ -134,7 +138,7 @@ namespace DirectumCoffee
                         foreach (CoreLabel word in words)
                         {
                             string lemma = word.getString(new CoreAnnotations.LemmaAnnotation().getClass());
-                            if (!string.IsNullOrWhiteSpace(lemma) && 
+                            if (!string.IsNullOrWhiteSpace(lemma) &&
                                 !punctuationAndSymbols.Contains(lemma) &&
                                 !insignificantWords.Contains(lemma))
                             {

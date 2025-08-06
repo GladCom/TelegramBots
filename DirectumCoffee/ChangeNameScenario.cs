@@ -1,4 +1,8 @@
-﻿using BotCommon.Scenarios;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using BotCommon.Scenarios;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -15,6 +19,7 @@ public class ChangeNameScenario : AutoStepBotCommandScenario
     {
         await bot.SendTextMessageAsync(chatId, BotMessages.YourName, parseMode: ParseMode.MarkdownV2);
     }
+
     private async Task StepAction2(ITelegramBotClient bot, Update update, long chatId)
     {
         var userInfo = BotDbContext.Instance.UserInfos

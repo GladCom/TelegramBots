@@ -1,6 +1,10 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using BotCommon;
-using BotCommon.Broadcast;
 using BotCommon.Repository;
 using BotCommon.Scenarios;
 using Newtonsoft.Json;
@@ -26,14 +30,14 @@ public class BotUpdateHandler : IUpdateHandler
         log.Info($"user: {BotHelper.GetUsername(userInfo)}, userMessage: {BotHelper.GetMessage(update)}");
         var userId = userInfo.Id;
         BotDbContext.Instance.Add(new BotUser(
-            userId, 
+            userId,
             userInfo.Username,
             userInfo.FirstName,
             userInfo.LastName,
             userInfo.LanguageCode));
         FillUserSystemInfo(userId);
         UserCommandScenario? userScenario = null;
-        
+
         switch (BotHelper.GetMessage(update))
         {
             case BotChatCommands.Start:
@@ -70,15 +74,18 @@ public class BotUpdateHandler : IUpdateHandler
                             new []{InlineKeyboardButton.WithCallbackData(BotMessages.StopInfo, BotChatCommands.Stop)},
                         });
                     }
+
                     await botClient.SendTextMessageAsync(userId,
                         BotMessages.BotStartMessage,
                         cancellationToken: cancellationToken,
                         parseMode: ParseMode.MarkdownV2,
                         replyMarkup: replyMarkup);
                 }
+
                 _userScenarioRepository?.Remove(userId);
                 break;
             }
+
             case BotChatCommands.Stop:
             {
                 var userSystemInfo = BotDbContext.Instance.UserInfos
@@ -87,10 +94,11 @@ public class BotUpdateHandler : IUpdateHandler
                 userSystemInfo.SearchDisable = true;
                 await BotDbContext.Instance.SaveChangesAsync(cancellationToken);
                 await botClient.SendTextMessageAsync(userId, BotMessages.StopInfoMessage, cancellationToken: cancellationToken, parseMode: ParseMode.MarkdownV2);
-                
+
                 _userScenarioRepository?.Remove(userId);
                 break;
             }
+
             case BotChatCommands.Restart:
             {
                 var userSystemInfo = BotDbContext.Instance.UserInfos
@@ -98,17 +106,19 @@ public class BotUpdateHandler : IUpdateHandler
                     .FirstOrDefault();
                 userSystemInfo.SearchDisable = false;
                 await BotDbContext.Instance.SaveChangesAsync(cancellationToken);
-                
+
                 await botClient.SendTextMessageAsync(userId, BotMessages.RestartInfoMessage, cancellationToken: cancellationToken, parseMode: ParseMode.MarkdownV2);
-                
+
                 _userScenarioRepository?.Remove(userId);
                 break;
             }
+
             case BotChatCommands.Go:
             {
                 userScenario = new UserCommandScenario(userId, new MainScenario());
                 break;
             }
+
             case BotChatCommands.Info:
             {
                 var info = BotDbContext.Instance.UserInfos
@@ -134,11 +144,12 @@ public class BotUpdateHandler : IUpdateHandler
                     new []{InlineKeyboardButton.WithCallbackData(BotMessages.ChangeInfo, BotChatCommands.Change)},
                     new []{InlineKeyboardButton.WithCallbackData(BotMessages.BackButton, BotChatCommands.Start)},
                 });
-                
+
                 await botClient.SendTextMessageAsync(userId, userInfoText.ToString(), cancellationToken: cancellationToken, replyMarkup: replyMarkup);
                 _userScenarioRepository?.Remove(userId);
                 break;
             }
+
             case BotChatCommands.Change:
             {
                 var replyMarkup = new InlineKeyboardMarkup(new []
@@ -154,31 +165,37 @@ public class BotUpdateHandler : IUpdateHandler
                 _userScenarioRepository?.Remove(userId);
                 break;
             }
+
             case BotChatCommands.ChangeName:
             {
                 userScenario = new UserCommandScenario(userId, new ChangeNameScenario());
                 break;
             }
+
             case BotChatCommands.ChangeCity:
             {
                 userScenario = new UserCommandScenario(userId, new ChangeCityScenario());
                 break;
             }
+
             case BotChatCommands.ChangeWork:
             {
                 userScenario = new UserCommandScenario(userId, new ChangeWorkScenario());
                 break;
             }
+
             case BotChatCommands.ChangeHobby:
             {
                 userScenario = new UserCommandScenario(userId, new ChangeHobbyScenario());
                 break;
             }
+
             case BotChatCommands.ChangeInterests:
             {
                 userScenario = new UserCommandScenario(userId, new ChangeInterestsScenario());
                 break;
             }
+
             case BotChatCommands.GeneratePairs:
             {
                 if (userId != new BotConfigManager().Config.BotAdminId.FirstOrDefault())
@@ -195,7 +212,7 @@ public class BotUpdateHandler : IUpdateHandler
                         sb.AppendLine(v.Hobby);
                         return sb.ToString();
                     });
-                
+
                 await botClient.SendTextMessageAsync(userId, "start generating pairs...",
                     cancellationToken: cancellationToken);
                 try
@@ -211,9 +228,10 @@ public class BotUpdateHandler : IUpdateHandler
                     await botClient.SendTextMessageAsync(userId, "generating pairs completed",
                         cancellationToken: cancellationToken);
                 }
-                
+
                 break;
             }
+
             case BotChatCommands.SendPairs:
             {
                 try
@@ -221,7 +239,7 @@ public class BotUpdateHandler : IUpdateHandler
                     if (userId != new BotConfigManager().Config.BotAdminId.FirstOrDefault())
                         return;
 
-                    var pairs = BotDbContext.Instance.CoffeePairs
+                    var pairs = BotDbContext.Instance.CoffeePairs.ToList()
                         .Where(p => p.PairingDate.Date == DateTime.Today)
                         .ToList();
 
@@ -238,11 +256,11 @@ public class BotUpdateHandler : IUpdateHandler
                         {
                             await botClient.SendTextMessageAsync(
                                 coffeePair.FirstUserId,
-                                string.Format(BotMessages.PairFoundMessage, secondUserInfo.Name, secondUserInfo.Hobby, secondUserInfo.Work, secondUserInfo.Interests), 
+                                string.Format(BotMessages.PairFoundMessage, secondUserInfo.Name, secondUserInfo.Hobby, secondUserInfo.Work, secondUserInfo.Interests),
                                 cancellationToken: cancellationToken);
                             await botClient.SendTextMessageAsync(
                                 coffeePair.SecondUserId,
-                                string.Format(BotMessages.PairFoundMessage, firstUserInfo.Name, firstUserInfo.Hobby, firstUserInfo.Work, firstUserInfo.Interests), 
+                                string.Format(BotMessages.PairFoundMessage, firstUserInfo.Name, firstUserInfo.Hobby, firstUserInfo.Work, firstUserInfo.Interests),
                                 cancellationToken: cancellationToken);
                         }
                         else
@@ -260,17 +278,19 @@ public class BotUpdateHandler : IUpdateHandler
                 }
                 catch
                 {
-                    
+
                 }
+
                 break;
             }
+
             case BotChatCommands.RandomPair:
             {
                 try
                 {
                     var userWithNoPair = BotDbContext.Instance.CoffeePairs
-                        .Where(p => p.SecondUserId == -1 && p.FirstUserId != userId && p.PairingDate.Date == DateTime.Today)
-                        .FirstOrDefault();
+                        .ToList()
+                        .FirstOrDefault(p => p.SecondUserId == -1 && p.FirstUserId != userId && p.PairingDate.Date == DateTime.Today);
                     if (userWithNoPair == null)
                     {
                         await botClient.SendTextMessageAsync(
@@ -278,20 +298,20 @@ public class BotUpdateHandler : IUpdateHandler
                             BotMessages.PairNotFoundCompletelyMessage);
                         break;
                     }
+
                     userWithNoPair.SecondUserId = userId;
                     var currentUser = BotDbContext.Instance.CoffeePairs
-                        .Where(p => p.FirstUserId == userId)
-                        .FirstOrDefault();
+                        .FirstOrDefault(p => p.FirstUserId == userId);
                     currentUser.SecondUserId = userWithNoPair.FirstUserId;
                     await BotDbContext.Instance.SaveChangesAsync(cancellationToken);
 
-                
+
                     var firstUserInfo = BotDbContext.Instance.UserInfos
-                        .Where(i => i.UserId == userId)
-                        .FirstOrDefault();
+                        .ToList()
+                        .FirstOrDefault(i => i.UserId == userId);
                     var secondUserInfo = BotDbContext.Instance.UserInfos
-                        .Where(i => i.UserId == userWithNoPair.FirstUserId)
-                        .FirstOrDefault();
+                        .ToList()
+                        .FirstOrDefault(i => i.UserId == userWithNoPair.FirstUserId);
 
                     await botClient.SendTextMessageAsync(
                         userId,
@@ -305,8 +325,10 @@ public class BotUpdateHandler : IUpdateHandler
                 {
                     Console.WriteLine(e);
                 }
+
                 break;
             }
+
             case "/broadcast":
             {
                 // var pairs = BotDbContext.Instance.CoffeePairs
@@ -325,6 +347,7 @@ public class BotUpdateHandler : IUpdateHandler
                 break;
             }
         }
+
         if (userScenario == null && _userScenarioRepository.TryGet(userId, out var _userScenario))
             userScenario = _userScenario;
         else
@@ -337,8 +360,7 @@ public class BotUpdateHandler : IUpdateHandler
     private static void FillUserSystemInfo(long userId)
     {
         var info = BotDbContext.Instance.UserInfos
-            .Where(i => i.UserId == userId)
-            .FirstOrDefault();
+            .FirstOrDefault(i => i.UserId == userId);
         if (info == null)
         {
             var userInfo = new UserInfo();

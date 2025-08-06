@@ -1,4 +1,6 @@
-﻿using BotCommon.Repository;
+﻿using System;
+using System.Linq;
+using BotCommon.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -25,9 +27,11 @@ public sealed class BotDbContext : UserDbContext
                     }
                 }
             }
+
             return instance;
         }
-    } 
+    }
+
     public DbSet<UserInfo> UserInfos { get; set; }
     public DbSet<CoffeePair> CoffeePairs { get; set; }
 
@@ -39,11 +43,11 @@ public sealed class BotDbContext : UserDbContext
         modelBuilder.Entity<UserInfo>()
             .HasOne(u => u.BotUser)
             .WithMany()
-            .HasForeignKey(u => u.UserId);   
+            .HasForeignKey(u => u.UserId);
         modelBuilder.Entity<UserInfo>()
             .Property(cp => cp.KeyWords)
             .HasConversion(
-                v => string.Join(',', v), 
+                v => string.Join(',', v),
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
 
         modelBuilder.Entity<CoffeePair>()
@@ -53,11 +57,11 @@ public sealed class BotDbContext : UserDbContext
         modelBuilder.Entity<CoffeePair>()
             .Property(cp => cp.CommonInterests)
             .HasConversion(
-                v => string.Join(',', v), 
+                v => string.Join(',', v),
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
     }
 
-    private BotDbContext() 
+    private BotDbContext()
         : base("Filename=coffee.db")
     {
         Database.EnsureCreated();
