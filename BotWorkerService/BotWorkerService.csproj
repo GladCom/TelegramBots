@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <UserSecretsId>dotnet-BotWorkerService-8B3DFD37-70AD-4AC3-B716-46145CEF881B</UserSecretsId>
     </PropertyGroup>
