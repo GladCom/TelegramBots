@@ -10,7 +10,7 @@ namespace DirectumCareerNightBot.GoogleSheets;
 public class GoogleSheetsManager
 {
     public GoogleCredential credential;
-    public readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
+    public readonly string[] scopes = [SheetsService.Scope.Spreadsheets];
     public static SheetsService service;
 
     public const string SpreadSheetId = "1MJ81r3eO9YnksjXdKU_U5j3_bj02jHqlLPavljhfzaY";

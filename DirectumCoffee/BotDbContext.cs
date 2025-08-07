@@ -1,69 +1,88 @@
-﻿using BotCommon.Repository;
+﻿using System;
+using System.Linq;
+using BotCommon.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace DirectumCoffee;
 
-public sealed class BotDbContext : UserDbContext
+/// <summary>
+/// DBContext для бота.
+/// </summary>
+internal sealed class BotDbContext : UserDbContext
 {
-    private static readonly object padlock = new object();
-    private static volatile BotDbContext instance;
-    private static Lazy<BotDbContext> lazy = new(() => new BotDbContext());
+  #region Поля и свойства
 
-    public static BotDbContext Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                lock (padlock)
-                {
-                    if (instance == null)
-                    {
-                        instance = lazy.Value;
-                    }
-                }
-            }
-            return instance;
-        }
-    } 
-    public DbSet<UserInfo> UserInfos { get; set; }
-    public DbSet<CoffeePair> CoffeePairs { get; set; }
+  /// <summary>
+  /// Объект для ленивой загрузки инстанса.
+  /// </summary>
+  private static readonly Lazy<BotDbContext> lazy = new Lazy<BotDbContext>(() => new BotDbContext());
 
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite(_connectionString);
+  /// <summary>
+  /// Экземпляр класса.
+  /// </summary>
+  public static BotDbContext Instance => lazy.Value;
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<UserInfo>()
-            .HasOne(u => u.BotUser)
-            .WithMany()
-            .HasForeignKey(u => u.UserId);   
-        modelBuilder.Entity<UserInfo>()
-            .Property(cp => cp.KeyWords)
-            .HasConversion(
-                v => string.Join(',', v), 
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+  /// <summary>
+  /// Набор информации о пользователях.
+  /// </summary>
+  public DbSet<UserInfo> UserInfos { get; set; }
 
-        modelBuilder.Entity<CoffeePair>()
-            .HasOne(cp => cp.FirstUser)
-            .WithMany()
-            .HasForeignKey(cp => cp.FirstUserId);
-        modelBuilder.Entity<CoffeePair>()
-            .Property(cp => cp.CommonInterests)
-            .HasConversion(
-                v => string.Join(',', v), 
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
-    }
+  /// <summary>
+  /// Набор образованных пар пользователей.
+  /// </summary>
+  public DbSet<CoffeePair> CoffeePairs { get; set; }
 
-    private BotDbContext() 
-        : base("Filename=coffee.db")
-    {
-        Database.EnsureCreated();
+  #endregion
 
-        var creator = this.GetService<IRelationalDatabaseCreator>();
-        if (!creator.Exists())
-            creator.CreateTables();
-    }
+  #region Базовый класс
+
+  /// <inheritdoc/>
+  protected override void OnConfiguring(DbContextOptionsBuilder options)
+    => options.UseSqlite(this._connectionString);
+
+  /// <inheritdoc/>
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
+    modelBuilder.Entity<UserInfo>()
+      .HasOne(u => u.BotUser)
+      .WithMany()
+      .HasForeignKey(u => u.UserId);
+    modelBuilder.Entity<UserInfo>()
+      .Property(cp => cp.KeyWords)
+      .HasConversion(
+        v => string.Join(',', v),
+        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+
+    modelBuilder.Entity<CoffeePair>()
+      .HasOne(cp => cp.FirstUser)
+      .WithMany()
+      .HasForeignKey(cp => cp.FirstUserId);
+    modelBuilder.Entity<CoffeePair>()
+      .Property(cp => cp.CommonInterests)
+      .HasConversion(
+        v => string.Join(',', v),
+        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
+  }
+
+  #endregion
+
+  #region Конструкторы
+
+  /// <summary>
+  /// Конструктор.
+  /// </summary>
+  private BotDbContext()
+    : base("Filename=coffee.db")
+  {
+    this.Database.EnsureCreated();
+
+    var creator = this.GetService<IRelationalDatabaseCreator>();
+    if (!creator.Exists())
+      creator.CreateTables();
+  }
+
+  #endregion
+
 }
