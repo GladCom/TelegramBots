@@ -27,11 +27,10 @@ public class ChangeNameScenario : AutoStepBotCommandScenario
     userInfo.Name = update.Message.Text;
 
     await BotDbContext.Instance.SaveChangesAsync();
-    var replyMarkup = new InlineKeyboardMarkup(new[]
-    {
-      new[] { InlineKeyboardButton.WithCallbackData(BotMessages.ChangeInfo, BotChatCommands.Change) },
-      new[] { InlineKeyboardButton.WithCallbackData(BotMessages.BackButton, BotChatCommands.Start) },
-    });
+    var replyMarkup = new InlineKeyboardMarkup([
+      [InlineKeyboardButton.WithCallbackData(BotMessages.ChangeInfo, BotChatCommands.Change)],
+      [InlineKeyboardButton.WithCallbackData(BotMessages.BackButton, BotChatCommands.Start)]
+    ]);
     await bot.SendTextMessageAsync(chatId, BotMessages.Success, parseMode: ParseMode.MarkdownV2, replyMarkup: replyMarkup);
   }
 

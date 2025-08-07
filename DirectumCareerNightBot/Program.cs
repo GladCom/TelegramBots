@@ -45,11 +45,11 @@ internal class Program
         log.Debug("Start Bot");
         var opts = new ReceiverOptions
         {
-            AllowedUpdates = new []
-            {
+            AllowedUpdates =
+            [
                 UpdateType.Message,
                 UpdateType.CallbackQuery
-            },
+            ],
             ThrowPendingUpdates = true
         };
         bot.StartReceiving<EmptyBotUpdateHandler>(receiverOptions: opts);

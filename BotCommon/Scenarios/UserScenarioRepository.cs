@@ -5,7 +5,7 @@ namespace BotCommon.Scenarios;
 
 public sealed class UserScenarioRepository
 {
-  private List<UserCommandScenario> _userScenarios = new List<UserCommandScenario>();
+  private List<UserCommandScenario> _userScenarios = [];
 
   public bool TryGet(long userId, out UserCommandScenario userCommandScenario)
   {

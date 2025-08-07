@@ -22,7 +22,7 @@ namespace DirectumCoffee
 
     public void GeneratePairs(Dictionary<long, string> profiles)
     {
-      List<KeyValuePair<long, Annotation>> annotations = new List<KeyValuePair<long, Annotation>>();
+      List<KeyValuePair<long, Annotation>> annotations = [];
       foreach (var profile in profiles)
       {
         Annotation annotation = new Annotation(profile.Value);
@@ -40,7 +40,7 @@ namespace DirectumCoffee
         BotDbContext.Instance.SaveChanges();
       }
 
-      HashSet<long> pairedUsers = new HashSet<long>();
+      HashSet<long> pairedUsers = [];
 
       for (int i = 0; i < profiles.Count - 1; i++)
       {
@@ -95,7 +95,7 @@ namespace DirectumCoffee
         {
           FirstUserId = profile1.Key,
           SecondUserId = bestMatchUserId != 0 ? bestMatchUserId : -1,
-          CommonInterests = commonInterests ?? Array.Empty<string>(),
+          CommonInterests = commonInterests ?? [],
           PairingDate = DateTime.Today
         };
 
@@ -125,7 +125,7 @@ namespace DirectumCoffee
         "потом", "ибо", "ещё", "всегда", "всюду", "просто", "несмотря на", "причём"
       ];
 
-      List<string> keywords = new List<string>();
+      List<string> keywords = [];
 
       var sentences = annotation.get(new CoreAnnotations.SentencesAnnotation().getClass()) as ArrayList;
       if (sentences != null)
