@@ -12,36 +12,37 @@ namespace DirectumCoffee;
 /// </summary>
 internal sealed class BotDbContext : UserDbContext
 {
-  private static readonly object padlock = new object();
-  private static volatile BotDbContext instance;
-  private static Lazy<BotDbContext> lazy = new(() => new BotDbContext());
+  #region Поля и свойства
 
-  public static BotDbContext Instance
-  {
-    get
-    {
-      if (instance == null)
-      {
-        lock (padlock)
-        {
-          if (instance == null)
-          {
-            instance = lazy.Value;
-          }
-        }
-      }
+  /// <summary>
+  /// Объект для ленивой загрузки инстанса.
+  /// </summary>
+  private static readonly Lazy<BotDbContext> lazy = new Lazy<BotDbContext>(() => new BotDbContext());
 
-      return instance;
-    }
-  }
+  /// <summary>
+  /// Экземпляр класса.
+  /// </summary>
+  public static BotDbContext Instance => lazy.Value;
 
+  /// <summary>
+  /// Набор информации о пользователях.
+  /// </summary>
   public DbSet<UserInfo> UserInfos { get; set; }
 
+  /// <summary>
+  /// Набор образованных пар пользователей.
+  /// </summary>
   public DbSet<CoffeePair> CoffeePairs { get; set; }
 
+  #endregion
+
+  #region Базовый класс
+
+  /// <inheritdoc/>
   protected override void OnConfiguring(DbContextOptionsBuilder options)
     => options.UseSqlite(this._connectionString);
 
+  /// <inheritdoc/>
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     modelBuilder.Entity<UserInfo>()
@@ -65,8 +66,15 @@ internal sealed class BotDbContext : UserDbContext
         v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
   }
 
+  #endregion
+
+  #region Конструкторы
+
+  /// <summary>
+  /// Конструктор.
+  /// </summary>
   private BotDbContext()
-      : base("Filename=coffee.db")
+    : base("Filename=coffee.db")
   {
     this.Database.EnsureCreated();
 
@@ -74,4 +82,7 @@ internal sealed class BotDbContext : UserDbContext
     if (!creator.Exists())
       creator.CreateTables();
   }
+
+  #endregion
+
 }
