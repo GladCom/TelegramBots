@@ -13,7 +13,9 @@ public class Tests
   public void Test1()
   {
     var comparer = new InterestsComparer();
-    var result = comparer.CompareInterests("cat", "dog");
+    var result = comparer.CompareInterests("cat",
+      new[] {"dog", "frog", "tiger"});
+    Console.WriteLine(result);
     Assert.Pass();
   }
 }
