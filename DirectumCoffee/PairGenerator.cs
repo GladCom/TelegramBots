@@ -5,9 +5,22 @@ using java.util;
 
 namespace DirectumCoffee
 {
+    using InterestsSimilarity;
+
     public class PairGenerator
     {
+        [Obsolete]
         private StanfordCoreNLP pipeline;
+        
+        /// <summary>
+        /// Анализатор сходства интересов.
+        /// </summary>
+        private readonly InterestsComparer interestsComparer = new ();
+        
+        /// <summary>
+        /// Список пользователей у которых есть пары.
+        /// </summary>
+        private HashSet<long> pairedUsers = new HashSet<long>();
 
         public PairGenerator()
         {
@@ -19,35 +32,30 @@ namespace DirectumCoffee
 
         public void GeneratePairs(Dictionary<long, string> profiles)
         {
-            List<KeyValuePair<long, Annotation>> annotations = new List<KeyValuePair<long, Annotation>>();
-            foreach (var profile in profiles)
+            List<UserProfile> userProfiles = profiles
+                .Select(p => new UserProfile
+                {
+                    Id = p.Key,
+                    Interests = p.Value
+                })
+                .ToList();
+            foreach (UserProfile userProfile in userProfiles)
             {
-                Annotation annotation = new Annotation(profile.Value);
-                pipeline.annotate(annotation);
-                annotations.Add(new KeyValuePair<long, Annotation>(profile.Key, annotation));
+                if (this.pairedUsers.Contains(userProfile.Id))
+                    continue;
+                userProfiles.Remove(userProfile);
+                this.GenerateOnePair(userProfile, userProfiles);
+                userProfiles.Add(userProfile);
             }
-            foreach (var annotation in annotations) 
-            {
-                var user = BotDbContext.Instance.UserInfos
-                    .Where(u => u.UserId == annotation.Key)
-                    .FirstOrDefault();
-                if (user == null)
-                    return;
-                user.KeyWords = ExtractKeywords(annotation.Value);
-                BotDbContext.Instance.SaveChanges();
-            }
-
-            HashSet<long> pairedUsers = new HashSet<long>();
+            
             
             for (int i = 0; i < profiles.Count - 1; i++)
             {
                 var profile1 = profiles.ElementAt(i);
-                var annotation1 = annotations[i];
-            
-                if (pairedUsers.Contains(profile1.Key))
-                {
+                if (this.pairedUsers.Contains(profile1.Key))
                     continue;
-                }
+                var interestsSimilarity = this.interestsComparer.Compare(profile1.Value, profiles.Values.ToArray());
+                var mostSimilarityProfile = Array.IndexOf(interestsSimilarity, interestsSimilarity.Max());
             
                 long bestMatchUserId = 0;
                 int maxCommonKeywords = 0;
@@ -56,36 +64,13 @@ namespace DirectumCoffee
                 for (int j = i + 1; j < profiles.Count; j++)
                 {
                     var profile2 = profiles.ElementAt(j);
-                    var annotation2 = annotations[j];
-
+                    
                     var isPairCreatedEarlier = BotDbContext.Instance.CoffeePairs
                         .Any(p => (p.FirstUserId == profile1.Key && p.SecondUserId == profile2.Key && p.PairingDate != DateTime.Today) 
                             || (p.FirstUserId == profile2.Key && p.SecondUserId == profile1.Key && p.PairingDate != DateTime.Today));
     
                     if (pairedUsers.Contains(profile2.Key) || isPairCreatedEarlier)
-                    {
                         continue;
-                    }
-            
-                    var keywords1 = BotDbContext.Instance.UserInfos
-                        .Where(u => u.UserId == annotation1.Key)
-                        .Select(u => u.KeyWords)
-                        .FirstOrDefault();
-                    var keywords2 = BotDbContext.Instance.UserInfos
-                        .Where(u => u.UserId == annotation2.Key)
-                        .Select(u => u.KeyWords)
-                        .FirstOrDefault();;
-            
-                    var commonKeywords = keywords1.Intersect(keywords2).ToList();
-            
-                    int commonCount = commonKeywords.Count;
-            
-                    if (commonCount > maxCommonKeywords)
-                    {
-                        maxCommonKeywords = commonCount;
-                        bestMatchUserId = profile2.Key;
-                        commonInterests = commonKeywords.ToArray();
-                    }
                 }
             
                 var pair = new CoffeePair
@@ -103,6 +88,41 @@ namespace DirectumCoffee
             }
             
             BotDbContext.Instance.SaveChanges();
+        }
+
+        private long GenerateOnePair(UserProfile targetProfile, List<UserProfile> profilesForMatch)
+        {
+            var interests = profilesForMatch.Select(p => p.Interests).ToArray();
+            var interestsSimilarity = this.interestsComparer.Compare(targetProfile.Interests, interests);
+            return this.GetPair(targetProfile, interestsSimilarity);
+            
+            var mostSimilarityProfileIdInArray = Array.IndexOf(interestsSimilarity, interestsSimilarity.Max());
+            var isPairCreatedEarlier = BotDbContext.Instance.CoffeePairs
+                .Any(p => (p.FirstUserId == targetProfile.Id && p.SecondUserId == profilesForMatch[mostSimilarityProfileIdInArray].Id
+                                                             && p.PairingDate != DateTime.Today) 
+                          || (p.FirstUserId == profilesForMatch[mostSimilarityProfileIdInArray].Id &&
+                              p.SecondUserId == targetProfile.Id && p.PairingDate != DateTime.Today));
+    
+            if (this.pairedUsers.Contains(profilesForMatch[mostSimilarityProfileIdInArray].Id) || isPairCreatedEarlier)
+                continue;
+            return profilesForMatch[mostSimilarityProfileIdInArray].Id;
+        }
+
+        private void GetPair(UserProfile targetProfile, float[] interestsSimilarity,List<UserProfile> profilesForMatch)
+        {
+            var mostSimilarityProfileIdInArray = Array.IndexOf(interestsSimilarity, interestsSimilarity.Max());
+            var isPairCreatedEarlier = BotDbContext.Instance.CoffeePairs
+                .Any(p => (p.FirstUserId == targetProfile.Id && p.SecondUserId == profilesForMatch[mostSimilarityProfileIdInArray].Id
+                                                             && p.PairingDate != DateTime.Today) 
+                          || (p.FirstUserId == profilesForMatch[mostSimilarityProfileIdInArray].Id &&
+                              p.SecondUserId == targetProfile.Id && p.PairingDate != DateTime.Today));
+            if (isPairCreatedEarlier)
+            {
+                if (interestsSimilarity.Length == 0)
+                    return null;
+                this.GetPair(targetProfile, interestsSimilarity);
+            }
+            else return ;
         }
 
         private List<string> ExtractKeywords(Annotation annotation)

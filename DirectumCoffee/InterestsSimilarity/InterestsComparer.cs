@@ -3,12 +3,15 @@ using Python.Runtime;
 
 namespace DirectumCoffee.InterestsSimilarity;
 
+/// <summary>
+/// Анализатор семантического сходства интересов.
+/// </summary>
 public class InterestsComparer
 {
   #region Поля и свойства
   
   /// <summary>
-  /// Путь до бибилиотеки python.dll. В библитеке должны быть "numpy", "sentence_transformers" и "sklearn"
+  /// Путь до бибилиотеки python.dll.
   /// </summary>
   private readonly string pythonDllPath;
   
@@ -25,13 +28,8 @@ public class InterestsComparer
   /// </summary>
   /// <param name="mainPhrase">Первая фраза.</param>
   /// <param name="phrasesToCompare">Фразы для сравнения.</param>
-  /// <returns>Коэффициент сходства:
-  /// 1.0 – идеальное совпадение (например, два одинаковых предложения).
-  /// 0.7–0.9 – очень близкие темы (синонимы, смежные понятия).
-  /// 0.4–0.6 – умеренная схожесть (общая тематика, но разный контекст).
-  /// 0.1–0.3 – слабая связь (разные темы).
-  /// 0.0 – полное отсутствие связи.</returns>
-  public float[] CompareInterests(string mainPhrase, string[] phrasesToCompare)
+  /// <returns>Коэффициент сходства.</returns>
+  public float[] Compare(string mainPhrase, string[] phrasesToCompare)
   {
     
     using (Py.GIL())
